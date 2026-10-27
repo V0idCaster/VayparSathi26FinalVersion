@@ -18,6 +18,7 @@ import Launch from "./pages/Launch";
 
 type Screen = "landing" | "onboarding" | "app";
 const KEY = "vyaparsathi.profile";
+const SESSION = "vyaparsathi.session";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("landing");
@@ -26,20 +27,22 @@ export default function App() {
   const page = history[history.length - 1];
 
   useEffect(() => {
-    const saved = localStorage.getItem(KEY);
-    if (saved) {
-      try {
-        setProfile(JSON.parse(saved));
-        setScreen("app");
-      } catch {
-        /* ignore */
-      }
+  const saved = localStorage.getItem(KEY);
+  if (saved) {
+    try {
+      setProfile(JSON.parse(saved));
+      // Only resume the app if this same tab was already logged in
+      if (sessionStorage.getItem(SESSION)) setScreen("app");
+    } catch {
+      /* ignore */
     }
-  }, []);
+  }
+}, []);
 
   const finishOnboarding = (p: Profile) => {
     setProfile(p);
     localStorage.setItem(KEY, JSON.stringify(p));
+    sessionStorage.setItem(SESSION, "1");
     setHistory(["dashboard"]);
     setScreen("app");
   };
@@ -47,6 +50,7 @@ export default function App() {
   // Login: returning users with a saved profile resume; otherwise they must onboard.
   const login = () => {
     if (profile) {
+      sessionStorage.setItem(SESSION, "1");
       setScreen("app");
       setHistory(["dashboard"]);
     } else {
@@ -67,6 +71,7 @@ export default function App() {
   };
   const logout = () => {
     localStorage.removeItem(KEY);
+    sessionStorage.removeItem(SESSION);
     setProfile(null);
     setScreen("landing");
   };
