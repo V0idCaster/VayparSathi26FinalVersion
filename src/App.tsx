@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Landing from "./pages/Landing";
 import Onboarding, { type Profile } from "./pages/Onboarding";
 import Shell, { type PageId } from "./components/Shell";
@@ -21,23 +21,22 @@ const KEY = "vyaparsathi.profile";
 const SESSION = "vyaparsathi.session";
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("landing");
-  const [history, setHistory] = useState<PageId[]>(["dashboard"]);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const page = history[history.length - 1];
-
-  useEffect(() => {
-  const saved = localStorage.getItem(KEY);
-  if (saved) {
+  const [profile, setProfile] = useState<Profile | null>(() => {
     try {
-      setProfile(JSON.parse(saved));
-      // Only resume the app if this same tab was already logged in
-      if (sessionStorage.getItem(SESSION)) setScreen("app");
+      const saved = localStorage.getItem(KEY);
+      return saved ? JSON.parse(saved) : null;
     } catch {
-      /* ignore */
+      return null;
     }
-  }
-}, []);
+  });
+
+  // Start on Landing unless this same tab was already logged in (refresh case)
+  const [screen, setScreen] = useState<Screen>(() =>
+    localStorage.getItem(KEY) && sessionStorage.getItem(SESSION) ? "app" : "landing",
+  );
+
+  const [history, setHistory] = useState<PageId[]>(["dashboard"]);
+  const page = history[history.length - 1];
 
   const finishOnboarding = (p: Profile) => {
     setProfile(p);
@@ -69,6 +68,7 @@ export default function App() {
     setProfile(p);
     localStorage.setItem(KEY, JSON.stringify(p));
   };
+
   const logout = () => {
     localStorage.removeItem(KEY);
     sessionStorage.removeItem(SESSION);
