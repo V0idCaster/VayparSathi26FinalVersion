@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react"; // CHANGED
 import {
   LayoutDashboard,
   MapPin,
@@ -27,6 +27,8 @@ import {
   TrendingUp,
   Landmark as LandmarkIcon,
   MessageSquare,
+  PanelLeftClose, // ADDED
+  PanelLeftOpen, // ADDED
 } from "lucide-react";
 import { cx } from "./ui";
 import AIAssistant from "./AIAssistant";
@@ -91,6 +93,11 @@ export default function Shell({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  // ADDED: desktop collapsed state, persisted in localStorage
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("vs.sidebarCollapsed") === "1"); // ADDED
+  useEffect(() => {
+    localStorage.setItem("vs.sidebarCollapsed", collapsed ? "1" : "0"); // ADDED
+  }, [collapsed]); // ADDED
   const [menu, setMenu] = useState<null | "bell" | "profile">(null);
   const [langOpen, setLangOpen] = useState(false);
   const { t, display, setDisplay } = useLang();
@@ -98,29 +105,45 @@ export default function Shell({
   const initials = (profile.name || "U").charAt(0).toUpperCase();
 
   return (
-    <div className="flex min-h-full bg-gray-50/60">
+    <div className="flex h-screen overflow-hidden bg-gray-50/60"> {/* CHANGED: page itself never scrolls */}
       {/* Sidebar */}
       <aside
         className={cx(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-200 bg-white transition-transform lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r border-gray-200 bg-white transition-[transform,width] duration-300 ease-in-out lg:static lg:translate-x-0", // CHANGED
           open ? "translate-x-0" : "-translate-x-full",
+          collapsed ? "lg:w-[72px]" : "lg:w-64", // ADDED
         )}
       >
-        <div className="flex items-center justify-between px-5 py-4">
+        <div className={cx("flex items-center justify-between px-5 py-4", collapsed && "lg:px-0 lg:justify-center")}> {/* CHANGED */}
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-700 text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-700 text-white"> {/* CHANGED */}
               <Leaf size={16} />
             </div>
-            <span className="font-display font-extrabold text-gray-900">VyaparSathi</span>
+            <span className={cx("whitespace-nowrap font-display font-extrabold text-gray-900", collapsed && "lg:hidden")}>VyaparSathi</span> {/* CHANGED */}
           </div>
           <button className="lg:hidden" onClick={() => setOpen(false)}>
             <X size={20} className="text-gray-500" />
           </button>
         </div>
-        <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-1">
+        {/* ADDED: desktop collapse / expand toggle */}
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={cx(
+            "mx-3 mb-2 hidden items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-100 lg:flex",
+            collapsed && "justify-center px-0",
+          )}
+        >
+          {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+          {!collapsed && <span className="whitespace-nowrap">Collapse</span>}
+        </button>
+        {/* END ADDED */}
+        <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto overflow-x-hidden px-3 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"> {/* CHANGED: internal scroll, hidden scrollbar */}
           {groups.map((g) => (
             <div key={g}>
-              <p className="px-3 pb-0.5 text-[11px] font-bold uppercase tracking-wider text-gray-400">{t("group." + g)}</p>
+              <p className={cx("whitespace-nowrap px-3 pb-0.5 text-[11px] font-bold uppercase tracking-wider text-gray-400", collapsed && "lg:hidden")}>{t("group." + g)}</p> {/* CHANGED */}
+              {collapsed && <div className="mx-2 mb-1 hidden border-t border-gray-100 lg:block" />} {/* ADDED: group divider in rail */}
               {NAV.filter((n) => n.group === g).map((n) => {
                 const active = page === n.id;
                 return (
@@ -130,13 +153,15 @@ export default function Shell({
                       setPage(n.id);
                       setOpen(false);
                     }}
+                    title={collapsed ? t("nav." + n.id) : undefined} // ADDED: tooltip when collapsed
                     className={cx(
                       "flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                       active ? "bg-brand-50 text-brand-800" : "text-gray-600 hover:bg-gray-100",
+                      collapsed && "lg:justify-center lg:px-0 lg:py-2", // ADDED
                     )}
                   >
-                    <n.icon size={17} className={active ? "text-brand-700" : "text-gray-400"} />
-                    {t("nav." + n.id)}
+                    <n.icon size={17} className={cx("shrink-0", active ? "text-brand-700" : "text-gray-400")} /> {/* CHANGED */}
+                    <span className={cx("whitespace-nowrap", collapsed && "lg:hidden")}>{t("nav." + n.id)}</span> {/* CHANGED */}
                   </button>
                 );
               })}
@@ -150,19 +175,21 @@ export default function Shell({
               setPage("settings");
               setOpen(false);
             }}
+            title={collapsed ? t("nav.settings") : undefined} // ADDED
             className={cx(
               "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
               page === "settings" ? "bg-brand-50" : "hover:bg-gray-100",
+              collapsed && "lg:justify-center lg:px-0", // ADDED
             )}
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-700 font-bold text-white">
               {initials}
             </div>
-            <div className="min-w-0 flex-1">
+            <div className={cx("min-w-0 flex-1", collapsed && "lg:hidden")}> {/* CHANGED */}
               <p className="truncate text-sm font-semibold text-gray-900">{profile.name || "Your profile"}</p>
               <p className="truncate text-xs text-gray-500">{profile.location || t("nav.settings")}</p>
             </div>
-            <Settings size={16} className={page === "settings" ? "text-brand-700" : "text-gray-400"} />
+            <Settings size={16} className={cx(page === "settings" ? "text-brand-700" : "text-gray-400", collapsed && "lg:hidden")} /> {/* CHANGED */}
           </button>
         </div>
       </aside>
@@ -170,8 +197,8 @@ export default function Shell({
       {open && <div className="fixed inset-0 z-40 bg-black/30 lg:hidden" onClick={() => setOpen(false)} />}
 
       {/* Main */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className={cx("sticky top-0 flex items-center gap-3 border-b border-gray-200 bg-white/80 px-4 py-3 backdrop-blur-md sm:px-6", menu ? "z-50" : "z-30")}>
+      <div className="flex h-screen min-w-0 flex-1 flex-col"> {/* CHANGED: column fills viewport */}
+        <header className={cx("relative shrink-0 flex items-center gap-3 border-b border-gray-200 bg-white/80 px-4 py-3 backdrop-blur-md sm:px-6", menu ? "z-50" : "z-30")}> {/* CHANGED: no longer sticky; header sits above scrolling main */}
           <button className="lg:hidden" onClick={() => setOpen(true)}>
             <Menu size={22} className="text-gray-700" />
           </button>
@@ -322,7 +349,7 @@ export default function Shell({
         {/* Click-away backdrop for header menus */}
         {menu && <div className="fixed inset-0 z-40" onClick={() => { setMenu(null); setLangOpen(false); }} />}
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8"> {/* CHANGED: only main scrolls */}
           <div className="mx-auto max-w-6xl">{children}</div>
         </main>
       </div>
