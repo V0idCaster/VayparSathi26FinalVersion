@@ -25,6 +25,7 @@ export default function App() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileFor, setProfileFor] = useState<string | null>(null); // user id the profile was loaded for
   const [authScreen, setAuthScreen] = useState<null | "login" | "signup">(null);
+  const [resetting, setResetting] = useState(false); // true while the user is redoing onboarding
   const [history, setHistory] = useState<PageId[]>(["dashboard"]);
   const page = history[history.length - 1];
 
@@ -76,6 +77,7 @@ export default function App() {
   const finishOnboarding = (p: Profile) => {
     setProfile(p);
     saveProfile(p);
+    setResetting(false);
     setHistory(["dashboard"]);
   };
 
@@ -87,6 +89,7 @@ export default function App() {
   const logout = async () => {
     await supabase.auth.signOut();
     setAuthScreen(null);
+    setResetting(false);
     setHistory(["dashboard"]);
   };
 
@@ -111,9 +114,14 @@ export default function App() {
   // Logged in, still fetching profile
   if (profileFor !== userId) return Loading;
 
-  // Logged in, no profile yet
-  if (!profile) {
-    return <Onboarding onDone={finishOnboarding} onExit={logout} />;
+  // Logged in, but no profile yet (new user) or the user chose to reset their preferences
+  if (!profile || resetting) {
+    return (
+      <Onboarding
+        onDone={finishOnboarding}
+        onExit={profile ? () => setResetting(false) : logout}
+      />
+    );
   }
 
   return (
@@ -138,7 +146,14 @@ export default function App() {
       {page === "health" && <BusinessHealth />}
       {page === "simulator" && <Simulator />}
       {page === "community" && <Community />}
-      {page === "settings" && <Settings profile={profile} onUpdate={updateProfile} onLogout={logout} />}
+      {page === "settings" && (
+        <Settings
+          profile={profile}
+          onUpdate={updateProfile}
+          onLogout={logout}
+          onReset={() => setResetting(true)}
+        />
+      )}
     </Shell>
   );
 }

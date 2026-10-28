@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut, Check, User, Globe, MapPin } from "lucide-react";
+import { LogOut, Check, User, Globe, MapPin, RotateCcw } from "lucide-react";
 import { Card, Button, SectionTitle, cx } from "../components/ui";
 import { languages, locationSuggestions, isValidIndianLocation, rupee } from "../lib/data";
 import { useLang } from "../lib/i18n";
@@ -9,10 +9,12 @@ export default function Settings({
   profile,
   onUpdate,
   onLogout,
+  onReset,
 }: {
   profile: Profile;
   onUpdate: (p: Profile) => void;
   onLogout: () => void;
+  onReset: () => void;
 }) {
   const { setDisplay } = useLang();
   const [draft, setDraft] = useState(profile);
@@ -26,6 +28,13 @@ export default function Settings({
     onUpdate(draft);
     setSaved(true);
     setTimeout(() => setSaved(false), 1800);
+  };
+
+  const reset = () => {
+    const ok = window.confirm(
+      "Restart the setup questions to change your business preferences?\n\nYour current answers stay saved until you finish the new setup.",
+    );
+    if (ok) onReset();
   };
 
   return (
@@ -103,6 +112,20 @@ export default function Settings({
             </button>
           ))}
         </div>
+      </Card>
+
+      {/* NEW: reset business preferences */}
+      <Card className="p-6">
+        <h3 className="flex items-center gap-2 font-bold text-gray-900">
+          <RotateCcw size={18} className="text-orange-600" /> Change Business Preferences
+        </h3>
+        <p className="mt-2 text-sm text-gray-500">
+          Want to switch to a different business type, such as from a cloud kitchen to agriculture? Redo the setup
+          questions with new choices. Your current answers stay saved until you finish.
+        </p>
+        <Button variant="outline" onClick={reset} className="mt-4">
+          <RotateCcw size={16} /> Reset my preferences
+        </Button>
       </Card>
 
       <div className="flex flex-wrap items-center gap-3">
