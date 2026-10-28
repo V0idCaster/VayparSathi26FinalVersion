@@ -1,23 +1,37 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
-import Landing from "./pages/Landing";
-import Auth from "./pages/Auth";
-import Onboarding, { type Profile } from "./pages/Onboarding";
-import Shell, { type PageId } from "./components/Shell";
-import Dashboard from "./pages/Dashboard";
-import Opportunities from "./pages/Opportunities";
-import Feasibility from "./pages/Feasibility";
-import BusinessPlan from "./pages/BusinessPlan";
-import Finance from "./pages/Finance";
-import Schemes from "./pages/Schemes";
-import BusinessDoctor from "./pages/BusinessDoctor";
-import BusinessHealth from "./pages/BusinessHealth";
-import Simulator from "./pages/Simulator";
-import Community from "./pages/Community";
-import Journey from "./pages/Journey";
-import Settings from "./pages/Settings";
-import Launch from "./pages/Launch";
+import Landing from "./pages/Landing"; // stays eager: it's the first screen visitors see
+import type { Profile } from "./pages/Onboarding";
+import type { PageId } from "./components/Shell";
+
+// Everything below is downloaded only when it's first needed
+const Auth = lazy(() => import("./pages/Auth"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Shell = lazy(() => import("./components/Shell"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Opportunities = lazy(() => import("./pages/Opportunities"));
+const Feasibility = lazy(() => import("./pages/Feasibility"));
+const BusinessPlan = lazy(() => import("./pages/BusinessPlan"));
+const Finance = lazy(() => import("./pages/Finance"));
+const Schemes = lazy(() => import("./pages/Schemes"));
+const BusinessDoctor = lazy(() => import("./pages/BusinessDoctor"));
+const BusinessHealth = lazy(() => import("./pages/BusinessHealth"));
+const Simulator = lazy(() => import("./pages/Simulator"));
+const Community = lazy(() => import("./pages/Community"));
+const Journey = lazy(() => import("./pages/Journey"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Launch = lazy(() => import("./pages/Launch"));
+
+function Loading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center text-sm text-gray-500">Loading...</div>
+  );
+}
+
+function PageLoading() {
+  return <div className="flex h-64 items-center justify-center text-sm text-gray-500">Loading...</div>;
+}
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -99,61 +113,70 @@ export default function App() {
   const back = () => setHistory((h) => (h.length > 1 ? h.slice(0, -1) : h));
   const home = () => setHistory(["dashboard"]);
 
-  const Loading = (
-    <div className="flex min-h-screen items-center justify-center text-sm text-gray-500">Loading...</div>
-  );
-
-  if (!authReady) return Loading;
+  if (!authReady) return <Loading />;
 
   // Not logged in: Landing or Auth
   if (!session) {
-    if (authScreen) return <Auth initialMode={authScreen} onBack={() => setAuthScreen(null)} />;
+    if (authScreen) {
+      return (
+        <Suspense fallback={<Loading />}>
+          <Auth initialMode={authScreen} onBack={() => setAuthScreen(null)} />
+        </Suspense>
+      );
+    }
     return <Landing onStart={() => setAuthScreen("signup")} onLogin={() => setAuthScreen("login")} />;
   }
 
   // Logged in, still fetching profile
-  if (profileFor !== userId) return Loading;
+  if (profileFor !== userId) return <Loading />;
 
   // Logged in, but no profile yet (new user) or the user chose to reset their preferences
   if (!profile || resetting) {
     return (
-      <Onboarding
-        onDone={finishOnboarding}
-        onExit={profile ? () => setResetting(false) : logout}
-      />
+      <Suspense fallback={<Loading />}>
+        <Onboarding
+          onDone={finishOnboarding}
+          onExit={profile ? () => setResetting(false) : logout}
+        />
+      </Suspense>
     );
   }
 
   return (
-    <Shell
-      page={page}
-      setPage={goExclusive}
-      profile={profile}
-      canBack={history.length > 1}
-      onBack={back}
-      onHome={home}
-      onLogout={logout}
-    >
-      {page === "dashboard" && <Dashboard profile={profile} go={go} />}
-      {page === "journey" && <Journey go={go} />}
-      {page === "opportunities" && <Opportunities profile={profile} go={go} />}
-      {page === "feasibility" && <Feasibility />}
-      {page === "plan" && <BusinessPlan />}
-      {page === "finance" && <Finance go={go} profile={profile} />}
-      {page === "schemes" && <Schemes />}
-      {page === "launch" && <Launch go={go} />}
-      {page === "doctor" && <BusinessDoctor />}
-      {page === "health" && <BusinessHealth />}
-      {page === "simulator" && <Simulator />}
-      {page === "community" && <Community />}
-      {page === "settings" && (
-        <Settings
-          profile={profile}
-          onUpdate={updateProfile}
-          onLogout={logout}
-          onReset={() => setResetting(true)}
-        />
-      )}
-    </Shell>
+    <Suspense fallback={<Loading />}>
+      <Shell
+        page={page}
+        setPage={goExclusive}
+        profile={profile}
+        canBack={history.length > 1}
+        onBack={back}
+        onHome={home}
+        onLogout={logout}
+      >
+        {/* Inner Suspense keeps the sidebar visible while a page loads */}
+        <Suspense fallback={<PageLoading />}>
+          {page === "dashboard" && <Dashboard profile={profile} go={go} />}
+          {page === "journey" && <Journey go={go} />}
+          {page === "opportunities" && <Opportunities profile={profile} go={go} />}
+          {page === "feasibility" && <Feasibility />}
+          {page === "plan" && <BusinessPlan />}
+          {page === "finance" && <Finance go={go} profile={profile} />}
+          {page === "schemes" && <Schemes />}
+          {page === "launch" && <Launch go={go} />}
+          {page === "doctor" && <BusinessDoctor />}
+          {page === "health" && <BusinessHealth />}
+          {page === "simulator" && <Simulator />}
+          {page === "community" && <Community />}
+          {page === "settings" && (
+            <Settings
+              profile={profile}
+              onUpdate={updateProfile}
+              onLogout={logout}
+              onReset={() => setResetting(true)}
+            />
+          )}
+        </Suspense>
+      </Shell>
+    </Suspense>
   );
 }
