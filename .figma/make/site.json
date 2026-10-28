@@ -1,8 +1,8 @@
 {
-  "title": "VayparSathiSIH26",
-  "description": "Delivers a sleek, professional website design with a subtle and simple aesthetic, ideal for businesses seeking an attractive yet understated online presence.",
+  "title": "VyaparSathi – AI Partner for Starting and Growing a Business",
+  "description": "VyaparSathi helps rural entrepreneurs in India find the right business opportunity, plan finances, discover government schemes and loans, and grow with AI-powered guidance.",
   "robots": {
-    "index": false
+    "index": true
   },
   "accessibility": {
     "addBypassLinks": false,
