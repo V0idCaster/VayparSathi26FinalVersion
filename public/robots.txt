@@ -1,0 +1,4 @@
+﻿User-agent: *
+Allow: /
+
+Sitemap: https://vyaparsathi26.vercel.app/sitemap.xml
