@@ -18,3 +18,17 @@ logs/
 # beside it.
 /.plugins/
 /.opencode-skills/
+# Vercel
+.vercel/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.idea/
+
+# Other secrets
+*.pem
+*.key
+
+# Keep the example env file committable
+!.env.example
